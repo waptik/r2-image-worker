@@ -24,29 +24,36 @@ app.put("/upload", async (c, next) => {
 
 app.put("/upload", async (c) => {
   const data = await c.req.json<Data>();
-  let url = data.body;
+  let url: URL;
 
   try {
-    new URL(url);
+    url = new URL(data.body);
   } catch (error) {
     return c.notFound();
   }
 
-  const res = await fetch(url);
+  const res = await fetch(data.body);
   if (!res.ok) return c.notFound();
   const arrayBuffer = await res.arrayBuffer();
   const contentType = res.headers.get("content-type") ?? "";
   const ext = getMimeExtension(contentType);
-  if (!ext) return c.notFound();
-  // strip extension from url if it has one already
-  const urlParts = url.split(".");
-  const lastPart = urlParts[urlParts.length - 1];
-  if (lastPart.includes(contentType)) {
-    urlParts.pop();
-  }
-   url = urlParts.join(".");
 
-  const key = url + "." + ext;
+  if (!ext) return c.notFound();
+
+  let pathname = url.pathname.substring(1);
+
+  const withoutExt = pathname.split(".")[0];
+
+  if (
+    withoutExt.endsWith(".") ||
+    withoutExt.endsWith("/") ||
+    withoutExt.endsWith("-")
+  ) {
+    pathname = withoutExt.slice(0, -1);
+  }
+  pathname = pathname.replace(/[^a-zA-Z0-9]/g, "-");
+
+  const key = `${pathname}.${ext}`;
 
   await c.env.BUCKET.put(key, arrayBuffer, {
     httpMetadata: { contentType: contentType },
@@ -77,4 +84,3 @@ app.get("/:key", async (c) => {
 });
 
 export default app;
-
