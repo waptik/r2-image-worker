@@ -5,31 +5,30 @@ Store and Deliver images with Cloudflare R2 backend Cloudflare Workers.
 ## Synopsis
 
 1. Deploy **r2-image-worker** to Cloudflare Workers.
-1. Make base64 strings from the image file such as `.png`, `jpg`, or `gif`.
-2. `PUT` the base64 strings to **r2-image-worker**.
-3. An image binary will be stored in Cloudflare R2 storage.
-4. **r2-image-worker** will respond the key of the stored image. `abcdef.png`
-5. **r2-image-worker** serve the images on `https://r2-image-worker.username.workers.dev/abcdef.png`
-6. Images will be cached on Cloudflare CDN.
+1. Get the URL of the image file with content type such as `.png`, `jpg`, or `gif`.
+1. `PUT` the image url in the body of **r2-image-worker**'s `/upload` endpoint.
+1. An image binary will be stored in Cloudflare R2 storage.
+1. **r2-image-worker** will respond with the key of the stored image. `abcdef.png`
+1. **r2-image-worker** serves the image on `https://r2-image-worker.username.workers.dev/abcdef.png`
+1. Images will be cached on Cloudflare CDN.
 
 ```
-User => Image => base64 => r2-image-worker => R2
+User => Image URL => fetch image => r2-image-worker => R2
 User <= Image <= r2-image-worker <= CDN Cache <= R2
 ```
 
 ## Prerequisites
 
-* Cloudflare Account
-* Wrangler CLI
-* (Custom domain * Cache API is not available in `*.workers.dev` domain)
+- Cloudflare Account
+- Wrangler CLI
+- (Custom domain _ Cache API is not available in `_.workers.dev` domain)
 
 ## Set up
-
 
 First, `git clone`
 
 ```
-git clone https://github.com/yusukebe/r2-image-worker.git
+git clone https://github.com/waptik/r2-image-worker.git
 cd r2-image-worker
 ```
 
@@ -46,7 +45,6 @@ cp wrangler.example.toml wrangler.toml
 ```
 
 Edit `wrangler.toml`.
-
 
 ## Variables
 
@@ -68,7 +66,7 @@ wrangler secret put USER
 To publish to your Cloudflare Workers:
 
 ```bash
-npm run deploy
+npm run cloud
 ```
 
 ## Endpoints
@@ -85,28 +83,23 @@ Authorization: Basic ...
 
 Body:
 
-Value of `body` is Basic64 string of image binary.
+Value of `body` is url of the remote image.
 
 ```json
 {
-  "body": "Base64 Text..."
+  "body": "https://www.businessinsider.in/photo/4754..."
 }
 ```
+
 ### Test
 
-1. Download a simple image
+1. Upload to your worker endpoint.
 
 ```
-wget  https://www.bing.com/th?id=OHR.Unesco50_ZH-CN3652927413_UHD.jpg -O /tmp/1.jpg
+echo '{"body" : "https://www.businessinsider.in/photo/47547654/40-trips-you-should-take-before-you-turn-30/explore-the-sahara-desert-the-largest-desert-on-the-african-continent-.jpg"}' | curl -XPUT -H "Content-Type: application/json" -d @-  https://change_user_here:change_pass_here@change_url_here/upload -vvv
 ```
 
-2. Upload to u endpoint.
-
-```
-echo '{"body" : "'"$( cat /tmp/1.jpg | base64)"'"}' | curl -XPUT -H "Content-Type: application/json" -d @-  https://change_user_here:change_pass_here@change_url_here/upload -vvv
-```
-
-3. Visit the image
+2. Visit the image
 
 ```
 https://change_user_here:change_pass_here@change_url_here/image_returned_in_step2
@@ -127,7 +120,11 @@ Prior to utilizing it, input the domain and user:pass into the designated text f
 
 ## Author
 
-Yusuke Wada <https://github.com/yusukebe>
+TheVirginBrokey <https://github.com/waptik>
+
+## Credits
+
+Yusuke Wada <https://github.com/yusukebe> for the initial work on [r2-image-worker](https://github.com/yusukebe/r2-image-worker)
 
 ## License
 

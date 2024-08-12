@@ -1,20 +1,16 @@
 export type Type = {
-  mimeType: string
-  suffix: string
-}
+  mimeType: string;
+  extension: string;
+};
 
-const signatures: Record<string, Type> = {
-  R0lGODdh: { mimeType: 'image/gif', suffix: 'gif' },
-  R0lGODlh: { mimeType: 'image/gif', suffix: 'gif' },
-  iVBORw0KGgo: { mimeType: 'image/png', suffix: 'png' },
-  '/9j/': { mimeType: 'image/jpg', suffix: 'jpg' },
-  'UklGRg==': { mimeType: 'image/webp', suffix: 'webp' }
-}
+const signatures: Record<string, string> = {
+  "image/gif": "gif",
+  "image/png": "png",
+  "image/jpg": "jpg",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
 
-export const detectType = (b64: string): Type | undefined => {
-  for (const s in signatures) {
-    if (b64.indexOf(s) === 0) {
-      return signatures[s]
-    }
-  }
-}
+export const getMimeExtension = (mimeType: string): string | undefined => {
+  return signatures[mimeType];
+};

@@ -1,7 +1,7 @@
-import { Hono } from "hono/quick";
-import { cache } from "hono/cache";
 import { basicAuth } from "hono/basic-auth";
-import { detectType } from "./utils";
+import { cache } from "hono/cache";
+import { Hono } from "hono/quick";
+import { getMimeExtension } from "./utils";
 
 type Bindings = {
   BUCKET: R2Bucket;
@@ -11,8 +11,6 @@ type Bindings = {
 
 type Data = {
   body: string;
-  width?: string;
-  height?: string;
 };
 
 const maxAge = 60 * 60 * 24 * 365 * 2;
@@ -26,7 +24,7 @@ app.put("/upload", async (c, next) => {
 
 app.put("/upload", async (c) => {
   const data = await c.req.json<Data>();
-  const url = data.body;
+  let url = data.body;
 
   try {
     new URL(url);
@@ -37,15 +35,21 @@ app.put("/upload", async (c) => {
   const res = await fetch(url);
   if (!res.ok) return c.notFound();
   const arrayBuffer = await res.arrayBuffer();
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+  const contentType = res.headers.get("content-type") ?? "";
+  const ext = getMimeExtension(contentType);
+  if (!ext) return c.notFound();
+  // strip extension from url if it has one already
+  const urlParts = url.split(".");
+  const lastPart = urlParts[urlParts.length - 1];
+  if (lastPart.includes(contentType)) {
+    urlParts.pop();
+  }
+   url = urlParts.join(".");
 
-  const type = detectType(b64);
-  if (!type) return c.notFound();
-
-  const key = url + "." + type.suffix;
+  const key = url + "." + ext;
 
   await c.env.BUCKET.put(key, arrayBuffer, {
-    httpMetadata: { contentType: type.mimeType },
+    httpMetadata: { contentType: contentType },
   });
 
   return c.text(key);
@@ -73,3 +77,4 @@ app.get("/:key", async (c) => {
 });
 
 export default app;
+
